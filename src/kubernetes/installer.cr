@@ -140,7 +140,8 @@ class Kubernetes::Installer
       taint: taint,
       extra_args: extra_args,
       server: server,
-      tls_sans: tls_sans
+      tls_sans: tls_sans,
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
   end
 
@@ -149,7 +150,8 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
-      first_master_private_ip_address: first_master.private_ip_address
+      first_master_private_ip_address: first_master.private_ip_address,
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
   end
 
@@ -243,7 +245,7 @@ class Kubernetes::Installer
     EOF
     BASH
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless status.zero?
       puts "Failed to create Hetzner Cloud secret:"
@@ -259,7 +261,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless status.zero?
       puts "Failed to deploy Cloud Controller Manager:"
@@ -275,7 +277,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless status.zero?
       puts "Failed to deploy CSI Driver:"
@@ -291,7 +293,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless status.zero?
       puts "Failed to deploy k3s System Upgrade Controller:"
@@ -338,7 +340,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f #{cluster_autoscaler_manifest_path}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless status.zero?
       puts "Failed to deploy Cluster Autoscaler:"
@@ -381,7 +383,7 @@ class Kubernetes::Installer
 
     command = "kubectl #{mark_type} --overwrite nodes #{node_names} #{all_marks}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     puts "...done."
   end
